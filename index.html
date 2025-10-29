@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title> He–Ne Laser  Simulation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #050010 40%, #000000 100%);
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      overflow: hidden;
+    }
+    h1 {
+      margin-top: 15px;
+      color: #ff5050;
+      text-shadow: 0 0 25px red;
+      font-size: 26px;
+    }
+    #controls {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      display: inline-block;
+    }
+    label {
+      margin: 10px;
+      display: block;
+      font-weight: bold;
+    }
+    input[type=range] {
+      width: 300px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 8px 16px;
+      border: none;
+      background: crimson;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #ff6666;
+    }
+    #meter {
+      width: 300px;
+      margin: 15px auto;
+      background: black;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 22px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: lime;
+      text-shadow: 0 0 10px lime;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    }
+    /* Right panels (existing) */
+    #theoryPanel, #graphPanel {
+      position: fixed;
+      right: -400px;
+      top: 0;
+      width: 350px;
+      height: 100%;
+      background: rgba(20, 0, 30, 0.95);
+      box-shadow: -5px 0 20px rgba(255, 0, 0, 0.3);
+      padding: 25px;
+      transition: right 0.6s ease;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    #theoryPanel.open, #graphPanel.open {
+      right: 0;
+    }
+    #theoryPanel h2, #graphPanel h2 {
+      color: #ff5050;
+      text-shadow: 0 0 10px red;
+      text-align: center;
+    }
+    #theoryPanel p, #graphPanel p {
+      text-align: justify;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    canvas.graphCanvas {
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      margin-top: 10px;
+      background: radial-gradient(circle at center, #0a0010 50%, #000 100%);
+    }
+
+    /* Left Simulation Details Panel */
+    #detailsPanel {
+      position: fixed;
+      left: -400px;
+      top: 0;
+      width: 350px;
+      height: 100%;
+      background: rgba(40, 0, 20, 0.9);
+      box-shadow: 5px 0 20px rgba(255, 0, 0, 0.3);
+      padding: 25px;
+      transition: left 0.6s ease;
+      overflow-y: auto;
+      z-index: 10;
+      border-right: 2px solid rgba(255, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+    }
+    #detailsPanel.open {
+      left: 0;
+    }
+    #detailsPanel h2 {
+      color: #ff5050;
+      text-shadow: 0 0 10px red;
+      text-align: center;
+    }
+    #detailsPanel p {
+      text-align: justify;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1> He–Ne Laser  Simulation</h1>
+  <div id="controls">
+    <label>⚡ Discharge Voltage:
+      <input type="range" id="voltage" min="0" max="100" value="40">
+      <span id="vVal">40</span> V
+    </label>
+    <label>🔮 Mirror Reflectivity:
+      <input type="range" id="reflectivity" min="0" max="100" value="70">
+      <span id="rVal">70</span> %
+    </label>
+    <button id="toggleDetails">ℹ️ Show Simulation Details</button>
+    <button id="toggleTheory">📘 Show Theory</button>
+    <button id="toggleGraph">📊 Graph Mode</button>
+  </div>
+
+  <div id="meter">Laser Intensity: 0.00</div>
+
+  <!-- LEFT DETAILS PANEL -->
+  <div id="detailsPanel">
+    <h2>ℹ️ Simulation Details</h2>
+    <p>This simulation shows how a <b>He–Ne laser</b> operates inside the discharge tube.</p>
+    <ul>
+      <li>🔵 <b>Blue dots</b> – represent <b>electrons</b> moving in the discharge.</li>
+      <li>✨ <b>Yellow sparks</b> – indicate <b>energy transfer</b> from excited Helium to Neon atoms.</li>
+      <li>🔴 <b>Red dots</b> – represent <b>photons</b> emitted during stimulated emission.</li>
+      <li>🔴➡️ <b>Red output beam</b> – the final <b>coherent laser light</b> emitted through the partially reflecting mirror.</li>
+    </ul>
+    <p><b>Process:</b><br>
+    The electrons (🔵) gain energy from the applied voltage and collide with Helium atoms.  
+    Excited Helium transfers energy (✨) to Neon atoms, causing Neon to emit photons (🔴).  
+    These photons reflect between the mirrors, amplifying until one escapes as the red beam (🔴➡️).</p>
+  </div>
+
+  <!-- RIGHT THEORY PANEL -->
+  <div id="theoryPanel">
+    <h2>📗 He–Ne Laser Theory</h2>
+    <p><b>Construction:</b><br>
+      The He–Ne laser uses a gas mixture of Helium and Neon in a discharge tube with two mirrors forming an optical resonator.
+    </p>
+    <p><b>Working Principle:</b></p>
+    <ul>
+      <li>Electric discharge excites Helium atoms.</li>
+      <li>Energy transfers to Neon → population inversion.</li>
+      <li>Stimulated emission of red light (632.8 nm).</li>
+      <li>Partially reflective mirror lets laser beam out.</li>
+    </ul>
+    <p><b>Key Relation:</b></p>
+    <p style="text-align:center; color:#aaa;">
+      Laser Intensity ∝ (Discharge Voltage × Mirror Reflectivity)
+    </p>
+  </div>
+
+  <!-- RIGHT GRAPH PANEL -->
+  <div id="graphPanel">
+    <h2>📊 Voltage vs Laser Intensity</h2>
+    <p>Live graph showing real-time relation between discharge voltage and laser intensity.</p>
+    <canvas id="graphCanvas" class="graphCanvas" width="320" height="240"></canvas>
+  </div>
+
+  <script>
+    let voltage = 40;
+    let reflectivity = 70;
+    let photons = [];
+    let electrons = [];
+    let sparks = [];
+    let theoryOpen = false;
+    let graphOpen = false;
+    let detailsOpen = false;
+    let laserIntensity = 0;
+    let graphPoints = [];
+
+    function setup() {
+      let cnv = createCanvas(windowWidth, 460);
+      cnv.parent(document.body);
+      textFont("Segoe UI");
+      for (let i = 0; i < 60; i++) {
+        electrons.push({x: random(width/2 - 240, width/2 + 240), y: random(200, 230), phase: random(TWO_PI)});
+      }
+    }
+
+    function draw() {
+      background(5, 0, 20);
+      voltage = int(document.getElementById("voltage").value);
+      reflectivity = int(document.getElementById("reflectivity").value);
+      document.getElementById("vVal").textContent = voltage;
+      document.getElementById("rVal").textContent = reflectivity;
+
+      drawTube();
+      drawMirrors();
+      drawElectrodes();
+      animateElectrons();
+      simulateExcitation();
+      drawPhotons();
+      drawOutputBeam();
+      drawLabels();
+      showStatus();
+      updateMeter();
+      updateGraph();
+    }
+
+    function drawTube() {
+      noStroke();
+      fill(100, 100, 180, 70);
+      rect(width/2 - 250, 190, 500, 60, 20);
+      if (voltage > 20) {
+        let glow = map(voltage, 20, 100, 30, 150);
+        fill(255, 60, 60, glow);
+        rect(width/2 - 245, 195, 490, 50, 20);
+      }
+    }
+
+    function drawMirrors() {
+      fill(200);
+      rect(width/2 - 260, 180, 10, 80);
+      fill(200, 100, 100);
+      rect(width/2 + 250, 180, 10, 80);
+    }
+
+    function drawElectrodes() {
+      stroke(255, 255, 100);
+      strokeWeight(2);
+      let ex1 = width/2 - 180;
+      let ex2 = width/2 + 180;
+      for (let x of [ex1, ex2]) {
+        beginShape();
+        for (let y = 250; y < 320; y += 6) {
+          vertex(x + sin(y * 0.3) * 5, y);
+        }
+        endShape();
+      }
+    }
+
+    function animateElectrons() {
+      noStroke();
+      for (let e of electrons) {
+        e.y = 210 + sin(frameCount * 0.15 + e.phase) * 10;
+        e.x += sin(frameCount * 0.02 + e.phase) * 0.5;
+        fill(0, 200, 255, 150);
+        ellipse(e.x, e.y, 4, 4);
+      }
+    }
+
+    function simulateExcitation() {
+      if (frameCount % int(25 - voltage / 8) === 0 && voltage > 25) {
+        photons.push({
+          x: random(width/2 - 240, width/2 + 240),
+          y: random(205, 235),
+          dir: random([1, -1]),
+          speed: random(3, 6),
+          color: color(255, random(100,150), 50)
+        });
+      }
+      if (frameCount % 40 === 0 && voltage > 40) {
+        sparks.push({x: random(width/2 - 230, width/2 + 230), y: random(205, 235), alpha: 255});
+      }
+
+      for (let s of sparks) {
+        stroke(255, 255, 100, s.alpha);
+        strokeWeight(2);
+        line(s.x, s.y, s.x + 10, s.y - 10);
+        s.alpha -= 5;
+      }
+      sparks = sparks.filter(s => s.alpha > 0);
+    }
+
+    function drawPhotons() {
+      for (let p of photons) {
+        noStroke();
+        fill(p.color);
+        ellipse(p.x, p.y, 5, 5);
+        p.x += p.dir * p.speed;
+        if (p.x < width/2 - 250) p.dir = 1;
+        if (p.x > width/2 + 250) p.dir = -1;
+      }
+      photons = photons.filter(p => p.x > width/2 - 260 && p.x < width/2 + 260);
+    }
+
+    function drawOutputBeam() {
+      if (voltage > 55 && reflectivity > 50) {
+        let intensity = map(voltage * reflectivity, 2500, 10000, 120, 255);
+        stroke(255, 0, 0, intensity);
+        strokeWeight(10);
+        let pulse = sin(frameCount * 0.3) * 10;
+        line(width/2 + 260, 220, width/2 + 260 + 120 + pulse, 220);
+      }
+    }
+
+    function drawLabels() {
+      noStroke();
+      fill(255);
+      textSize(14);
+      textAlign(CENTER);
+      text("Fully Reflecting Mirror", width/2 - 250, 170);
+      text("Partially Reflecting Mirror", width/2 + 270, 170);
+      text("Electrodes", width/2, 340);
+      text("He–Ne Gas Discharge Tube", width/2, 260);
+    }
+
+    function showStatus() {
+      textAlign(CENTER);
+      textSize(15);
+      fill(200);
+      let msg = "";
+      if (voltage < 20) msg = "Low voltage: no excitation.";
+      else if (voltage < 40) msg = "Helium excited, minimal transfer.";
+      else if (voltage < 60) msg = "Neon begins stimulated emission.";
+      else if (reflectivity < 50) msg = "Low reflectivity → weak lasing.";
+      else msg = "✨ Stable lasing → coherent red beam emitted!";
+      text(msg, width/2, 60);
+    }
+
+    function updateMeter() {
+      laserIntensity = (voltage * reflectivity) / 100;
+      let meter = document.getElementById("meter");
+      meter.textContent = "Laser Intensity: " + laserIntensity.toFixed(2);
+      if (laserIntensity < 2000) meter.style.color = "lime";
+      else if (laserIntensity < 5000) meter.style.color = "yellow";
+      else meter.style.color = "red";
+    }
+
+    function updateGraph() {
+      if (frameCount % 5 === 0) {
+        graphPoints.push({v: voltage, i: laserIntensity});
+        if (graphPoints.length > 60) graphPoints.shift();
+      }
+      if (graphOpen) drawGraph();
+    }
+
+    function drawGraph() {
+      const canvas = document.getElementById("graphCanvas");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      for (let i = 0; i <= 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * 30);
+        ctx.lineTo(canvas.width, i * 30);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 40, 0);
+        ctx.lineTo(i * 40, canvas.height);
+        ctx.stroke();
+      }
+
+      let maxI = Math.max(...graphPoints.map(p => p.i), 100);
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(30, 10);
+      ctx.lineTo(30, 230);
+      ctx.lineTo(310, 230);
+      ctx.stroke();
+
+      ctx.fillStyle = "white";
+      ctx.font = "12px Segoe UI";
+      ctx.fillText("Discharge Voltage (V)", 110, 235);
+      ctx.save();
+      ctx.translate(10, 150);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText("Laser Intensity", 0, 0);
+      ctx.restore();
+
+      if (graphPoints.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = "#ff5050";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < graphPoints.length; i++) {
+          let x = 30 + (graphPoints[i].v * 2.5);
+          let y = 230 - (graphPoints[i].i / maxI) * 200;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        for (let p of graphPoints) {
+          let x = 30 + (p.v * 2.5);
+          let y = 230 - (p.i / maxI) * 200;
+          ctx.fillStyle = "#ff8080";
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Toggle Panels
+    document.getElementById("toggleTheory").onclick = () => {
+      theoryOpen = !theoryOpen;
+      document.getElementById("theoryPanel").classList.toggle("open");
+      document.getElementById("toggleTheory").textContent =
+        theoryOpen ? "❌ Hide Theory" : "📘 Show Theory";
+    };
+
+    document.getElementById("toggleGraph").onclick = () => {
+      graphOpen = !graphOpen;
+      document.getElementById("graphPanel").classList.toggle("open");
+      document.getElementById("toggleGraph").textContent =
+        graphOpen ? "❌ Hide Graph" : "📊 Graph Mode";
+    };
+
+    document.getElementById("toggleDetails").onclick = () => {
+      detailsOpen = !detailsOpen;
+      document.getElementById("detailsPanel").classList.toggle("open");
+      document.getElementById("toggleDetails").textContent =
+        detailsOpen ? "❌ Hide Details" : "ℹ️ Show Simulation Details";
+    };
+
+    function windowResized() {
+      resizeCanvas(windowWidth, 460);
+    }
+  </script>
+</body>
+</html>
